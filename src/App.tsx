@@ -12,6 +12,7 @@ type Assignment = {
   title: string
   subjectId: string
   deadline: string
+  completed: boolean
 }
 
 function App() {
@@ -58,8 +59,8 @@ function App() {
       deadline: assignmentDeadline,
     }
     setAssignments((current) => editingAssignmentId
-      ? current.map((item) => item.id === editingAssignmentId ? assignment : item)
-      : [...current, assignment])
+      ? current.map((item) => item.id === editingAssignmentId ? { ...item, ...assignment } : item)
+      : [...current, { ...assignment, completed: false }])
     resetAssignmentForm()
   }
 
@@ -78,6 +79,12 @@ function App() {
     setAssignmentDeadline('')
     setAssignmentError('')
     assignmentTitleRef.current?.focus()
+  }
+
+  function toggleAssignmentCompletion(id: string) {
+    setAssignments((current) => current.map((assignment) => assignment.id === id
+      ? { ...assignment, completed: !assignment.completed }
+      : assignment))
   }
 
   return (
@@ -169,18 +176,26 @@ function App() {
         ) : (
           <ul className="assignment-list" aria-live="polite">
             {assignments.map((assignment) => (
-              <li key={assignment.id}>
+              <li key={assignment.id} className={assignment.completed ? 'completed' : undefined}>
                 <strong>{assignment.title}</strong>
                 <p>{subjects.find((subject) => subject.id === assignment.subjectId)?.name}</p>
                 {assignment.deadline && (
                   <p>Deadline: <time dateTime={assignment.deadline}>{assignment.deadline}</time></p>
                 )}
+                <p className="assignment-status">{assignment.completed ? 'Completed' : 'Active'}</p>
                 <button
                   type="button"
                   aria-label={`Edit ${assignment.title}`}
                   onClick={() => editAssignment(assignment)}
                 >
                   Edit
+                </button>
+                <button
+                  type="button"
+                  aria-label={`${assignment.completed ? 'Mark as active' : 'Mark as completed'}: ${assignment.title}`}
+                  onClick={() => toggleAssignmentCompletion(assignment.id)}
+                >
+                  {assignment.completed ? 'Mark as active' : 'Mark as completed'}
                 </button>
               </li>
             ))}

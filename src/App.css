@@ -80,3 +80,11 @@
 .assignment-list button {
   margin-top: 8px;
 }
+
+.assignment-list button + button {
+  margin-left: 8px;
+}
+
+.assignment-list .completed strong {
+  text-decoration: line-through;
+}
