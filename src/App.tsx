@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
 
@@ -23,6 +23,8 @@ function App() {
   const [assignmentDeadline, setAssignmentDeadline] = useState('')
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [assignmentError, setAssignmentError] = useState('')
+  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null)
+  const assignmentTitleRef = useRef<HTMLInputElement>(null)
 
   function addSubject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -38,7 +40,7 @@ function App() {
     setError('')
   }
 
-  function addAssignment(event: FormEvent<HTMLFormElement>) {
+  function saveAssignment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const title = assignmentTitle.trim()
 
@@ -49,15 +51,33 @@ function App() {
 
     if (!subjects.some((subject) => subject.id === assignmentSubjectId)) return
 
-    setAssignments((current) => [...current, {
-      id: crypto.randomUUID(),
+    const assignment = {
+      id: editingAssignmentId ?? crypto.randomUUID(),
       title,
       subjectId: assignmentSubjectId,
       deadline: assignmentDeadline,
-    }])
+    }
+    setAssignments((current) => editingAssignmentId
+      ? current.map((item) => item.id === editingAssignmentId ? assignment : item)
+      : [...current, assignment])
+    resetAssignmentForm()
+  }
+
+  function editAssignment(assignment: Assignment) {
+    setEditingAssignmentId(assignment.id)
+    setAssignmentTitle(assignment.title)
+    setAssignmentSubjectId(assignment.subjectId)
+    setAssignmentDeadline(assignment.deadline)
+    setAssignmentError('')
+    assignmentTitleRef.current?.focus()
+  }
+
+  function resetAssignmentForm() {
+    setEditingAssignmentId(null)
     setAssignmentTitle('')
     setAssignmentDeadline('')
     setAssignmentError('')
+    assignmentTitleRef.current?.focus()
   }
 
   return (
@@ -95,10 +115,15 @@ function App() {
       <section className="assignment-section" aria-labelledby="assignments-heading">
         <h2 id="assignments-heading">Assignments</h2>
         {subjects.length === 0 && <p>Add a subject before adding an assignment.</p>}
-        <form className="assignment-form" aria-label="Add assignment" onSubmit={addAssignment}>
+        <form
+          className="assignment-form"
+          aria-label={editingAssignmentId ? 'Edit assignment' : 'Add assignment'}
+          onSubmit={saveAssignment}
+        >
           <label htmlFor="assignment-title">Assignment title</label>
           <input
             id="assignment-title"
+            ref={assignmentTitleRef}
             name="assignmentTitle"
             value={assignmentTitle}
             onChange={(event) => {
@@ -132,7 +157,12 @@ function App() {
             value={assignmentDeadline}
             onChange={(event) => setAssignmentDeadline(event.target.value)}
           />
-          <button type="submit" disabled={subjects.length === 0}>Add assignment</button>
+          <button type="submit" disabled={subjects.length === 0}>
+            {editingAssignmentId ? 'Save changes' : 'Add assignment'}
+          </button>
+          {editingAssignmentId && (
+            <button type="button" onClick={resetAssignmentForm}>Cancel</button>
+          )}
         </form>
         {assignments.length === 0 ? (
           <p>No assignments added yet.</p>
@@ -145,6 +175,13 @@ function App() {
                 {assignment.deadline && (
                   <p>Deadline: <time dateTime={assignment.deadline}>{assignment.deadline}</time></p>
                 )}
+                <button
+                  type="button"
+                  aria-label={`Edit ${assignment.title}`}
+                  onClick={() => editAssignment(assignment)}
+                >
+                  Edit
+                </button>
               </li>
             ))}
           </ul>
