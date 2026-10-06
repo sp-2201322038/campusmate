@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { useStoredList } from './useStoredList'
 import './App.css'
 
 type Subject = {
@@ -16,15 +17,36 @@ type Assignment = {
   completed: boolean
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== ''
+}
+
+function isSubject(value: unknown): value is Subject {
+  if (typeof value !== 'object' || value === null) return false
+  const subject = value as Record<string, unknown>
+  return isNonEmptyString(subject.id) && isNonEmptyString(subject.name)
+}
+
+function isAssignment(value: unknown): value is Assignment {
+  if (typeof value !== 'object' || value === null) return false
+  const assignment = value as Record<string, unknown>
+  return isNonEmptyString(assignment.id)
+    && isNonEmptyString(assignment.title)
+    && isNonEmptyString(assignment.subjectId)
+    && typeof assignment.deadline === 'string'
+    && typeof assignment.completed === 'boolean'
+    && (assignment.priority === 'Low' || assignment.priority === 'Medium' || assignment.priority === 'High')
+}
+
 function App() {
   const [subjectName, setSubjectName] = useState('')
-  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [subjects, setSubjects] = useStoredList('campusmate.subjects', isSubject)
   const [error, setError] = useState('')
   const [assignmentTitle, setAssignmentTitle] = useState('')
   const [assignmentSubjectId, setAssignmentSubjectId] = useState('')
   const [assignmentDeadline, setAssignmentDeadline] = useState('')
   const [assignmentPriority, setAssignmentPriority] = useState<Assignment['priority']>('Medium')
-  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [assignments, setAssignments] = useStoredList('campusmate.assignments', isAssignment)
   const [assignmentError, setAssignmentError] = useState('')
   const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null)
   const assignmentTitleRef = useRef<HTMLInputElement>(null)
