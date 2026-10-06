@@ -12,6 +12,7 @@ type Assignment = {
   title: string
   subjectId: string
   deadline: string
+  priority: 'Low' | 'Medium' | 'High'
   completed: boolean
 }
 
@@ -22,6 +23,7 @@ function App() {
   const [assignmentTitle, setAssignmentTitle] = useState('')
   const [assignmentSubjectId, setAssignmentSubjectId] = useState('')
   const [assignmentDeadline, setAssignmentDeadline] = useState('')
+  const [assignmentPriority, setAssignmentPriority] = useState<Assignment['priority']>('Medium')
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [assignmentError, setAssignmentError] = useState('')
   const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null)
@@ -57,6 +59,7 @@ function App() {
       title,
       subjectId: assignmentSubjectId,
       deadline: assignmentDeadline,
+      priority: assignmentPriority,
     }
     setAssignments((current) => editingAssignmentId
       ? current.map((item) => item.id === editingAssignmentId ? { ...item, ...assignment } : item)
@@ -69,6 +72,7 @@ function App() {
     setAssignmentTitle(assignment.title)
     setAssignmentSubjectId(assignment.subjectId)
     setAssignmentDeadline(assignment.deadline)
+    setAssignmentPriority(assignment.priority)
     setAssignmentError('')
     assignmentTitleRef.current?.focus()
   }
@@ -77,6 +81,7 @@ function App() {
     setEditingAssignmentId(null)
     setAssignmentTitle('')
     setAssignmentDeadline('')
+    setAssignmentPriority('Medium')
     setAssignmentError('')
     assignmentTitleRef.current?.focus()
   }
@@ -156,6 +161,17 @@ function App() {
               <option key={subject.id} value={subject.id}>{subject.name}</option>
             ))}
           </select>
+          <label htmlFor="assignment-priority">Priority</label>
+          <select
+            id="assignment-priority"
+            name="assignmentPriority"
+            value={assignmentPriority}
+            onChange={(event) => setAssignmentPriority(event.target.value as Assignment['priority'])}
+          >
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+          </select>
           <label htmlFor="assignment-deadline">Deadline (optional)</label>
           <input
             id="assignment-deadline"
@@ -179,6 +195,7 @@ function App() {
               <li key={assignment.id} className={assignment.completed ? 'completed' : undefined}>
                 <strong>{assignment.title}</strong>
                 <p>{subjects.find((subject) => subject.id === assignment.subjectId)?.name}</p>
+                <p>Priority: {assignment.priority}</p>
                 {assignment.deadline && (
                   <p>Deadline: <time dateTime={assignment.deadline}>{assignment.deadline}</time></p>
                 )}
