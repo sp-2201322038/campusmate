@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useStoredList } from './useStoredList'
+import { isNonEmptyString, validateRequiredText } from './validation'
 import './App.css'
 
 type Subject = {
@@ -15,10 +16,6 @@ type Assignment = {
   deadline: string
   priority: 'Low' | 'Medium' | 'High'
   completed: boolean
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim() !== ''
 }
 
 function isSubject(value: unknown): value is Subject {
@@ -54,9 +51,10 @@ function App() {
   function addSubject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const name = subjectName.trim()
+    const validationError = validateRequiredText(name, 'Enter a subject name.')
 
-    if (!name) {
-      setError('Enter a subject name.')
+    if (validationError) {
+      setError(validationError)
       return
     }
 
@@ -68,9 +66,10 @@ function App() {
   function saveAssignment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const title = assignmentTitle.trim()
+    const validationError = validateRequiredText(title, 'Enter an assignment title.')
 
-    if (!title) {
-      setAssignmentError('Enter an assignment title.')
+    if (validationError) {
+      setAssignmentError(validationError)
       return
     }
 
