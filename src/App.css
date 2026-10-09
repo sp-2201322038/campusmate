@@ -6,12 +6,14 @@
 }
 
 .subject-form,
-.assignment-form {
+.assignment-form,
+.exam-form {
   display: grid;
   gap: 12px;
 }
 
-.assignment-form {
+.assignment-form,
+.exam-form {
   margin: 16px 0;
 }
 
@@ -20,6 +22,9 @@
 .assignment-form input,
 .assignment-form select,
 .assignment-form button,
+.exam-form input,
+.exam-form select,
+.exam-form button,
 .assignment-list button {
   box-sizing: border-box;
   min-width: 0;
@@ -34,6 +39,7 @@
 
 .subject-form button,
 .assignment-form button,
+.exam-form button,
 .assignment-list button {
   justify-self: start;
   border-color: var(--accent-border);
@@ -46,34 +52,42 @@
 .assignment-form input:focus-visible,
 .assignment-form select:focus-visible,
 .assignment-form button:focus-visible,
+.exam-form input:focus-visible,
+.exam-form select:focus-visible,
+.exam-form button:focus-visible,
 .assignment-list button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.assignment-form :disabled {
+.assignment-form :disabled,
+.exam-form :disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
 #subject-error,
-#assignment-error {
+#assignment-error,
+#exam-error {
   color: var(--text-h);
 }
 
 .subjects-list,
-.assignment-section {
+.assignment-section,
+.exam-section {
   margin-top: 32px;
 }
 
 .subject-list,
-.assignment-list {
+.assignment-list,
+.exam-list {
   padding-left: 24px;
   overflow-wrap: anywhere;
 }
 
 .subject-list li,
-.assignment-list li {
+.assignment-list li,
+.exam-list li {
   padding: 8px 0;
 }
 

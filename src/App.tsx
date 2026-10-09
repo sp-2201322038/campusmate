@@ -18,6 +18,13 @@ type Assignment = {
   completed: boolean
 }
 
+type Exam = {
+  id: string
+  name: string
+  subjectId: string
+  date: string
+}
+
 function isSubject(value: unknown): value is Subject {
   if (typeof value !== 'object' || value === null) return false
   const subject = value as Record<string, unknown>
@@ -35,6 +42,15 @@ function isAssignment(value: unknown): value is Assignment {
     && (assignment.priority === 'Low' || assignment.priority === 'Medium' || assignment.priority === 'High')
 }
 
+function isExam(value: unknown): value is Exam {
+  if (typeof value !== 'object' || value === null) return false
+  const exam = value as Record<string, unknown>
+  return isNonEmptyString(exam.id)
+    && isNonEmptyString(exam.name)
+    && isNonEmptyString(exam.subjectId)
+    && isNonEmptyString(exam.date)
+}
+
 function App() {
   const [subjectName, setSubjectName] = useState('')
   const [subjects, setSubjects] = useStoredList('campusmate.subjects', isSubject)
@@ -47,6 +63,11 @@ function App() {
   const [assignmentError, setAssignmentError] = useState('')
   const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null)
   const assignmentTitleRef = useRef<HTMLInputElement>(null)
+  const [examName, setExamName] = useState('')
+  const [examSubjectId, setExamSubjectId] = useState('')
+  const [examDate, setExamDate] = useState('')
+  const [exams, setExams] = useStoredList('campusmate.exams', isExam)
+  const [examError, setExamError] = useState('')
 
   function addSubject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -111,6 +132,27 @@ function App() {
     setAssignments((current) => current.map((assignment) => assignment.id === id
       ? { ...assignment, completed: !assignment.completed }
       : assignment))
+  }
+
+  function addExam(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const name = examName.trim()
+    const validationError = validateRequiredText(name, 'Enter an exam name.')
+      || (!subjects.some((subject) => subject.id === examSubjectId) ? 'Select a subject.' : '')
+      || validateRequiredText(examDate, 'Enter an exam date.')
+
+    if (validationError) {
+      setExamError(validationError)
+      return
+    }
+
+    setExams((current) => [...current, {
+      id: crypto.randomUUID(), name, subjectId: examSubjectId, date: examDate,
+    }])
+    setExamName('')
+    setExamSubjectId('')
+    setExamDate('')
+    setExamError('')
   }
 
   return (
@@ -235,6 +277,72 @@ function App() {
                 >
                   {assignment.completed ? 'Mark as active' : 'Mark as completed'}
                 </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      <section className="exam-section" aria-labelledby="exams-heading">
+        <h2 id="exams-heading">Exams</h2>
+        {subjects.length === 0 && <p>Add a subject before adding an exam.</p>}
+        <form
+          className="exam-form"
+          aria-label="Add exam"
+          aria-describedby={examError ? 'exam-error' : undefined}
+          onSubmit={addExam}
+        >
+          <label htmlFor="exam-name">Exam name</label>
+          <input
+            id="exam-name"
+            name="examName"
+            value={examName}
+            onChange={(event) => {
+              setExamName(event.target.value)
+              setExamError('')
+            }}
+            required
+          />
+          <label htmlFor="exam-subject">Subject</label>
+          <select
+            id="exam-subject"
+            name="examSubjectId"
+            value={examSubjectId}
+            onChange={(event) => {
+              setExamSubjectId(event.target.value)
+              setExamError('')
+            }}
+            required
+            disabled={subjects.length === 0}
+          >
+            <option value="">Select a subject</option>
+            {subjects.map((subject) => (
+              <option key={subject.id} value={subject.id}>{subject.name}</option>
+            ))}
+          </select>
+          <label htmlFor="exam-date">Exam date</label>
+          <input
+            id="exam-date"
+            name="examDate"
+            type="date"
+            value={examDate}
+            onChange={(event) => {
+              setExamDate(event.target.value)
+              setExamError('')
+            }}
+            required
+          />
+          {examError && <p id="exam-error" role="alert">{examError}</p>}
+          <button type="submit" disabled={subjects.length === 0}>Add exam</button>
+        </form>
+        {exams.length === 0 ? (
+          <p>No exams added yet.</p>
+        ) : (
+          <ul className="exam-list" aria-live="polite">
+            {exams.map((exam) => (
+              <li key={exam.id}>
+                <strong>{exam.name}</strong>
+                <p>{subjects.find((subject) => subject.id === exam.subjectId)?.name}</p>
+                <p>Date: <time dateTime={exam.date}>{exam.date}</time></p>
               </li>
             ))}
           </ul>
