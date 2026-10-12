@@ -4,6 +4,8 @@ import { useStoredList } from './useStoredList'
 import { isNonEmptyString, validateRequiredText } from './validation'
 import './App.css'
 
+const views = ['Dashboard', 'Subjects', 'Assignments', 'Exams'] as const
+
 type Subject = {
   id: string
   name: string
@@ -52,6 +54,7 @@ function isExam(value: unknown): value is Exam {
 }
 
 function App() {
+  const [activeView, setActiveView] = useState<typeof views[number]>('Dashboard')
   const [subjectName, setSubjectName] = useState('')
   const [subjects, setSubjects] = useStoredList('campusmate.subjects', isSubject)
   const [error, setError] = useState('')
@@ -190,247 +193,312 @@ function App() {
   }
 
   return (
-    <main className="subjects">
-      <h1>CampusMate</h1>
-      <section className="dashboard" aria-labelledby="dashboard-heading">
-        <h2 id="dashboard-heading">Dashboard</h2>
-        <dl className="dashboard-summary" aria-live="polite">
-          <div className="summary-card">
-            <dt>Active assignments</dt>
-            <dd>{activeAssignments.length}</dd>
-          </div>
-          <div className="summary-card">
-            <dt>Upcoming exams</dt>
-            <dd>{upcomingExams.length}</dd>
-          </div>
-        </dl>
-        <section aria-labelledby="upcoming-heading">
-          <h3 id="upcoming-heading">Upcoming deadlines</h3>
-          <div aria-live="polite">
-            {upcomingItems.length === 0 ? (
-              <p className="dashboard-empty">
-                No upcoming deadlines. Add an assignment with a deadline or an exam to see it here.
-              </p>
-            ) : (
-              <ol className="upcoming-list">
-                {upcomingItems.map((item) => (
-                  <li key={`${item.type}-${item.id}`}>
-                    <strong>{item.title}</strong>
-                    <p>{subjects.find((subject) => subject.id === item.subjectId)?.name}</p>
-                    <p>{item.type} · <time dateTime={item.date}>{item.date}</time></p>
-                  </li>
-                ))}
-              </ol>
-            )}
+    <div className="app-shell">
+      <header className="app-header">
+        <h1>CampusMate</h1>
+        <nav aria-label="Main navigation">
+          {views.map((view) => (
+            <button
+              key={view}
+              type="button"
+              aria-current={activeView === view ? 'page' : undefined}
+              onClick={() => setActiveView(view)}
+            >
+              {view}
+            </button>
+          ))}
+        </nav>
+      </header>
+      <main className="workspace">
+        <section className="dashboard workspace-view" hidden={activeView !== 'Dashboard'} aria-labelledby="dashboard-heading">
+          <header className="view-heading">
+            <h2 id="dashboard-heading">Dashboard</h2>
+            <p>Your coursework at a glance.</p>
+          </header>
+          <dl className="dashboard-summary" aria-live="polite">
+            <div className="summary-card">
+              <dt>Active assignments</dt>
+              <dd>
+                {activeAssignments.length}
+                <span className="summary-note">Not completed</span>
+              </dd>
+            </div>
+            <div className="summary-card">
+              <dt>Upcoming exams</dt>
+              <dd>
+                {upcomingExams.length}
+                <span className="summary-note">Today and later</span>
+              </dd>
+            </div>
+          </dl>
+          <section className="list-panel" aria-labelledby="upcoming-heading">
+            <h3 id="upcoming-heading">Upcoming deadlines</h3>
+            <div aria-live="polite">
+              {upcomingItems.length === 0 ? (
+                <p className="dashboard-empty">
+                  No upcoming deadlines. Add an assignment with a deadline or an exam to see it here.
+                </p>
+              ) : (
+                <ol className="upcoming-list">
+                  {upcomingItems.map((item) => (
+                    <li key={`${item.type}-${item.id}`}>
+                      <time className="deadline-date" dateTime={item.date} aria-label={item.date}>
+                        <span className="deadline-day">{item.date.slice(8, 10)}</span>
+                        <span>
+                          {new Date(`${item.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}
+                          {' '}{item.date.slice(0, 4)}
+                        </span>
+                      </time>
+                      <div className="deadline-details">
+                        <strong>{item.title}</strong>
+                        <p>{subjects.find((subject) => subject.id === item.subjectId)?.name}</p>
+                      </div>
+                      <span className={`deadline-type${item.type === 'Exam' ? ' exam' : ''}`}>{item.type}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </section>
+        </section>
+        <section className="subjects-view workspace-view" hidden={activeView !== 'Subjects'} aria-labelledby="subjects-heading">
+          <header className="view-heading">
+            <h2 id="subjects-heading">Subjects</h2>
+            <p>Keep your courses organized.</p>
+          </header>
+          <div className="view-grid">
+            <div className="form-panel">
+              <h3>Add subject</h3>
+              <form className="subject-form" onSubmit={addSubject}>
+                <label htmlFor="subject-name">Subject name</label>
+                <input
+                  id="subject-name"
+                  name="subjectName"
+                  value={subjectName}
+                  onChange={(event) => {
+                    setSubjectName(event.target.value)
+                    setError('')
+                  }}
+                  required
+                  aria-invalid={Boolean(error)}
+                  aria-describedby={error ? 'subject-error' : undefined}
+                />
+                {error && <p id="subject-error" role="alert">{error}</p>}
+                <button type="submit">Add subject</button>
+              </form>
+            </div>
+            <section className="subjects-list list-panel" aria-labelledby="subject-list-heading">
+              <h3 id="subject-list-heading">Your subjects</h3>
+              {subjects.length === 0 ? (
+                <p>No subjects added yet.</p>
+              ) : (
+                <ul className="subject-list" aria-live="polite">
+                  {subjects.map((subject) => <li key={subject.id}>{subject.name}</li>)}
+                </ul>
+              )}
+            </section>
           </div>
         </section>
-      </section>
-      <form className="subject-form" onSubmit={addSubject}>
-        <label htmlFor="subject-name">Subject name</label>
-        <input
-          id="subject-name"
-          name="subjectName"
-          value={subjectName}
-          onChange={(event) => {
-            setSubjectName(event.target.value)
-            setError('')
-          }}
-          required
-          aria-invalid={Boolean(error)}
-          aria-describedby={error ? 'subject-error' : undefined}
-        />
-        {error && <p id="subject-error" role="alert">{error}</p>}
-        <button type="submit">Add subject</button>
-      </form>
-
-      <section className="subjects-list" aria-labelledby="subjects-heading">
-        <h2 id="subjects-heading">Subjects</h2>
-        {subjects.length === 0 ? (
-          <p>No subjects added yet.</p>
-        ) : (
-          <ul className="subject-list" aria-live="polite">
-            {subjects.map((subject) => <li key={subject.id}>{subject.name}</li>)}
-          </ul>
-        )}
-      </section>
-
-      <section className="assignment-section" aria-labelledby="assignments-heading">
-        <h2 id="assignments-heading">Assignments</h2>
-        {subjects.length === 0 && <p>Add a subject before adding an assignment.</p>}
-        <form
-          className="assignment-form"
-          aria-label={editingAssignmentId ? 'Edit assignment' : 'Add assignment'}
-          onSubmit={saveAssignment}
-        >
-          <label htmlFor="assignment-title">Assignment title</label>
-          <input
-            id="assignment-title"
-            ref={assignmentTitleRef}
-            name="assignmentTitle"
-            value={assignmentTitle}
-            onChange={(event) => {
-              setAssignmentTitle(event.target.value)
-              setAssignmentError('')
-            }}
-            required
-            aria-invalid={Boolean(assignmentError)}
-            aria-describedby={assignmentError ? 'assignment-error' : undefined}
-          />
-          {assignmentError && <p id="assignment-error" role="alert">{assignmentError}</p>}
-          <label htmlFor="assignment-subject">Subject</label>
-          <select
-            id="assignment-subject"
-            name="assignmentSubjectId"
-            value={assignmentSubjectId}
-            onChange={(event) => setAssignmentSubjectId(event.target.value)}
-            required
-            disabled={subjects.length === 0}
-          >
-            <option value="">Select a subject</option>
-            {subjects.map((subject) => (
-              <option key={subject.id} value={subject.id}>{subject.name}</option>
-            ))}
-          </select>
-          <label htmlFor="assignment-priority">Priority</label>
-          <select
-            id="assignment-priority"
-            name="assignmentPriority"
-            value={assignmentPriority}
-            onChange={(event) => setAssignmentPriority(event.target.value as Assignment['priority'])}
-          >
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-          </select>
-          <label htmlFor="assignment-deadline">Deadline (optional)</label>
-          <input
-            id="assignment-deadline"
-            name="assignmentDeadline"
-            type="date"
-            value={assignmentDeadline}
-            onChange={(event) => setAssignmentDeadline(event.target.value)}
-          />
-          <button type="submit" disabled={subjects.length === 0}>
-            {editingAssignmentId ? 'Save changes' : 'Add assignment'}
-          </button>
-          {editingAssignmentId && (
-            <button type="button" onClick={resetAssignmentForm}>Cancel</button>
-          )}
-        </form>
-        <div className="assignment-filter">
-          <label htmlFor="assignment-subject-filter">Filter by subject</label>
-          <select
-            id="assignment-subject-filter"
-            value={subjectFilterId}
-            onChange={(event) => setSubjectFilterId(event.target.value)}
-          >
-            <option value="">All subjects</option>
-            {subjects.map((subject) => (
-              <option key={subject.id} value={subject.id}>{subject.name}</option>
-            ))}
-          </select>
-        </div>
-        {filteredAssignments.length === 0 ? (
-          <p role="status">
-            {subjectFilterId ? 'No assignments for this subject.' : 'No assignments added yet.'}
-          </p>
-        ) : (
-          <ul className="assignment-list" aria-live="polite">
-            {filteredAssignments.map((assignment) => (
-              <li key={assignment.id} className={assignment.completed ? 'completed' : undefined}>
-                <strong>{assignment.title}</strong>
-                <p>{subjects.find((subject) => subject.id === assignment.subjectId)?.name}</p>
-                <p>Priority: {assignment.priority}</p>
-                {assignment.deadline && (
-                  <p>Deadline: <time dateTime={assignment.deadline}>{assignment.deadline}</time></p>
+        <section className="assignment-section workspace-view" hidden={activeView !== 'Assignments'} aria-labelledby="assignments-heading">
+          <header className="view-heading">
+            <h2 id="assignments-heading">Assignments</h2>
+            <p>Track coursework, priorities, and progress.</p>
+          </header>
+          <div className="view-grid">
+            <div className="form-panel">
+              <h3>{editingAssignmentId ? 'Edit assignment' : 'Add assignment'}</h3>
+              {subjects.length === 0 && <p>Add a subject before adding an assignment.</p>}
+              <form
+                className="assignment-form"
+                aria-label={editingAssignmentId ? 'Edit assignment' : 'Add assignment'}
+                onSubmit={saveAssignment}
+              >
+                <label htmlFor="assignment-title">Assignment title</label>
+                <input
+                  id="assignment-title"
+                  ref={assignmentTitleRef}
+                  name="assignmentTitle"
+                  value={assignmentTitle}
+                  onChange={(event) => {
+                    setAssignmentTitle(event.target.value)
+                    setAssignmentError('')
+                  }}
+                  required
+                  aria-invalid={Boolean(assignmentError)}
+                  aria-describedby={assignmentError ? 'assignment-error' : undefined}
+                />
+                {assignmentError && <p id="assignment-error" role="alert">{assignmentError}</p>}
+                <label htmlFor="assignment-subject">Subject</label>
+                <select
+                  id="assignment-subject"
+                  name="assignmentSubjectId"
+                  value={assignmentSubjectId}
+                  onChange={(event) => setAssignmentSubjectId(event.target.value)}
+                  required
+                  disabled={subjects.length === 0}
+                >
+                  <option value="">Select a subject</option>
+                  {subjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>{subject.name}</option>
+                  ))}
+                </select>
+                <label htmlFor="assignment-priority">Priority</label>
+                <select
+                  id="assignment-priority"
+                  name="assignmentPriority"
+                  value={assignmentPriority}
+                  onChange={(event) => setAssignmentPriority(event.target.value as Assignment['priority'])}
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                </select>
+                <label htmlFor="assignment-deadline">Deadline (optional)</label>
+                <input
+                  id="assignment-deadline"
+                  name="assignmentDeadline"
+                  type="date"
+                  value={assignmentDeadline}
+                  onChange={(event) => setAssignmentDeadline(event.target.value)}
+                />
+                <button type="submit" disabled={subjects.length === 0}>
+                  {editingAssignmentId ? 'Save changes' : 'Add assignment'}
+                </button>
+                {editingAssignmentId && (
+                  <button type="button" onClick={resetAssignmentForm}>Cancel</button>
                 )}
-                <p className="assignment-status">{assignment.completed ? 'Completed' : 'Active'}</p>
-                <button
-                  type="button"
-                  aria-label={`Edit ${assignment.title}`}
-                  onClick={() => editAssignment(assignment)}
+              </form>
+            </div>
+            <section className="list-panel" aria-labelledby="assignment-list-heading">
+              <h3 id="assignment-list-heading">Your assignments</h3>
+              <div className="assignment-filter">
+                <label htmlFor="assignment-subject-filter">Filter by subject</label>
+                <select
+                  id="assignment-subject-filter"
+                  value={subjectFilterId}
+                  onChange={(event) => setSubjectFilterId(event.target.value)}
                 >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  aria-label={`${assignment.completed ? 'Mark as active' : 'Mark as completed'}: ${assignment.title}`}
-                  onClick={() => toggleAssignmentCompletion(assignment.id)}
+                  <option value="">All subjects</option>
+                  {subjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>{subject.name}</option>
+                  ))}
+                </select>
+              </div>
+              {filteredAssignments.length === 0 ? (
+                <p role="status">
+                  {subjectFilterId ? 'No assignments for this subject.' : 'No assignments added yet.'}
+                </p>
+              ) : (
+                <ul className="assignment-list" aria-live="polite">
+                  {filteredAssignments.map((assignment) => (
+                    <li key={assignment.id} className={assignment.completed ? 'completed' : undefined}>
+                      <strong>{assignment.title}</strong>
+                      <p>{subjects.find((subject) => subject.id === assignment.subjectId)?.name}</p>
+                      <p>Priority: {assignment.priority}</p>
+                      {assignment.deadline && (
+                        <p>Deadline: <time dateTime={assignment.deadline}>{assignment.deadline}</time></p>
+                      )}
+                      <p className="assignment-status">{assignment.completed ? 'Completed' : 'Active'}</p>
+                      <button
+                        type="button"
+                        aria-label={`Edit ${assignment.title}`}
+                        onClick={() => editAssignment(assignment)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`${assignment.completed ? 'Mark as active' : 'Mark as completed'}: ${assignment.title}`}
+                        onClick={() => toggleAssignmentCompletion(assignment.id)}
+                      >
+                        {assignment.completed ? 'Mark as active' : 'Mark as completed'}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </div>
+        </section>
+        <section className="exam-section workspace-view" hidden={activeView !== 'Exams'} aria-labelledby="exams-heading">
+          <header className="view-heading">
+            <h2 id="exams-heading">Exams</h2>
+            <p>Plan for your next exams.</p>
+          </header>
+          <div className="view-grid">
+            <div className="form-panel">
+              <h3>Add exam</h3>
+              {subjects.length === 0 && <p>Add a subject before adding an exam.</p>}
+              <form
+                className="exam-form"
+                aria-label="Add exam"
+                aria-describedby={examError ? 'exam-error' : undefined}
+                onSubmit={addExam}
+              >
+                <label htmlFor="exam-name">Exam name</label>
+                <input
+                  id="exam-name"
+                  name="examName"
+                  value={examName}
+                  onChange={(event) => {
+                    setExamName(event.target.value)
+                    setExamError('')
+                  }}
+                  required
+                />
+                <label htmlFor="exam-subject">Subject</label>
+                <select
+                  id="exam-subject"
+                  name="examSubjectId"
+                  value={examSubjectId}
+                  onChange={(event) => {
+                    setExamSubjectId(event.target.value)
+                    setExamError('')
+                  }}
+                  required
+                  disabled={subjects.length === 0}
                 >
-                  {assignment.completed ? 'Mark as active' : 'Mark as completed'}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-      <section className="exam-section" aria-labelledby="exams-heading">
-        <h2 id="exams-heading">Exams</h2>
-        {subjects.length === 0 && <p>Add a subject before adding an exam.</p>}
-        <form
-          className="exam-form"
-          aria-label="Add exam"
-          aria-describedby={examError ? 'exam-error' : undefined}
-          onSubmit={addExam}
-        >
-          <label htmlFor="exam-name">Exam name</label>
-          <input
-            id="exam-name"
-            name="examName"
-            value={examName}
-            onChange={(event) => {
-              setExamName(event.target.value)
-              setExamError('')
-            }}
-            required
-          />
-          <label htmlFor="exam-subject">Subject</label>
-          <select
-            id="exam-subject"
-            name="examSubjectId"
-            value={examSubjectId}
-            onChange={(event) => {
-              setExamSubjectId(event.target.value)
-              setExamError('')
-            }}
-            required
-            disabled={subjects.length === 0}
-          >
-            <option value="">Select a subject</option>
-            {subjects.map((subject) => (
-              <option key={subject.id} value={subject.id}>{subject.name}</option>
-            ))}
-          </select>
-          <label htmlFor="exam-date">Exam date</label>
-          <input
-            id="exam-date"
-            name="examDate"
-            type="date"
-            value={examDate}
-            onChange={(event) => {
-              setExamDate(event.target.value)
-              setExamError('')
-            }}
-            required
-          />
-          {examError && <p id="exam-error" role="alert">{examError}</p>}
-          <button type="submit" disabled={subjects.length === 0}>Add exam</button>
-        </form>
-        {exams.length === 0 ? (
-          <p>No exams added yet.</p>
-        ) : (
-          <ul className="exam-list" aria-live="polite">
-            {exams.map((exam) => (
-              <li key={exam.id}>
-                <strong>{exam.name}</strong>
-                <p>{subjects.find((subject) => subject.id === exam.subjectId)?.name}</p>
-                <p>Date: <time dateTime={exam.date}>{exam.date}</time></p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </main>
+                  <option value="">Select a subject</option>
+                  {subjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>{subject.name}</option>
+                  ))}
+                </select>
+                <label htmlFor="exam-date">Exam date</label>
+                <input
+                  id="exam-date"
+                  name="examDate"
+                  type="date"
+                  value={examDate}
+                  onChange={(event) => {
+                    setExamDate(event.target.value)
+                    setExamError('')
+                  }}
+                  required
+                />
+                {examError && <p id="exam-error" role="alert">{examError}</p>}
+                <button type="submit" disabled={subjects.length === 0}>Add exam</button>
+              </form>
+            </div>
+            <section className="list-panel" aria-labelledby="exam-list-heading">
+              <h3 id="exam-list-heading">Your exams</h3>
+              {exams.length === 0 ? (
+                <p>No exams added yet.</p>
+              ) : (
+                <ul className="exam-list" aria-live="polite">
+                  {exams.map((exam) => (
+                    <li key={exam.id}>
+                      <strong>{exam.name}</strong>
+                      <p>{subjects.find((subject) => subject.id === exam.subjectId)?.name}</p>
+                      <p>Date: <time dateTime={exam.date}>{exam.date}</time></p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
   )
 }
 
