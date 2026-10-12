@@ -60,6 +60,7 @@ function App() {
   const [assignmentDeadline, setAssignmentDeadline] = useState('')
   const [assignmentPriority, setAssignmentPriority] = useState<Assignment['priority']>('Medium')
   const [assignments, setAssignments] = useStoredList('campusmate.assignments', isAssignment)
+  const [subjectFilterId, setSubjectFilterId] = useState('')
   const [assignmentError, setAssignmentError] = useState('')
   const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null)
   const assignmentTitleRef = useRef<HTMLInputElement>(null)
@@ -79,6 +80,9 @@ function App() {
 
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   const activeAssignments = assignments.filter((assignment) => !assignment.completed)
+  const filteredAssignments = subjectFilterId
+    ? assignments.filter((assignment) => assignment.subjectId === subjectFilterId)
+    : assignments
   const upcomingExams = exams.filter((exam) => exam.date >= today)
   const upcomingItems = [
     ...activeAssignments
@@ -313,11 +317,26 @@ function App() {
             <button type="button" onClick={resetAssignmentForm}>Cancel</button>
           )}
         </form>
-        {assignments.length === 0 ? (
-          <p>No assignments added yet.</p>
+        <div className="assignment-filter">
+          <label htmlFor="assignment-subject-filter">Filter by subject</label>
+          <select
+            id="assignment-subject-filter"
+            value={subjectFilterId}
+            onChange={(event) => setSubjectFilterId(event.target.value)}
+          >
+            <option value="">All subjects</option>
+            {subjects.map((subject) => (
+              <option key={subject.id} value={subject.id}>{subject.name}</option>
+            ))}
+          </select>
+        </div>
+        {filteredAssignments.length === 0 ? (
+          <p role="status">
+            {subjectFilterId ? 'No assignments for this subject.' : 'No assignments added yet.'}
+          </p>
         ) : (
           <ul className="assignment-list" aria-live="polite">
-            {assignments.map((assignment) => (
+            {filteredAssignments.map((assignment) => (
               <li key={assignment.id} className={assignment.completed ? 'completed' : undefined}>
                 <strong>{assignment.title}</strong>
                 <p>{subjects.find((subject) => subject.id === assignment.subjectId)?.name}</p>
