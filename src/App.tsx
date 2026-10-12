@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useStoredList } from './useStoredList'
 import { isNonEmptyString, validateRequiredText } from './validation'
@@ -68,6 +68,36 @@ function App() {
   const [examDate, setExamDate] = useState('')
   const [exams, setExams] = useStoredList('campusmate.exams', isExam)
   const [examError, setExamError] = useState('')
+
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const nextDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+    const timer = window.setTimeout(() => setNow(new Date()), nextDay.getTime() - Date.now())
+    return () => window.clearTimeout(timer)
+  }, [now])
+
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const activeAssignments = assignments.filter((assignment) => !assignment.completed)
+  const upcomingExams = exams.filter((exam) => exam.date >= today)
+  const upcomingItems = [
+    ...activeAssignments
+      .filter((assignment) => assignment.deadline && assignment.deadline >= today)
+      .map((assignment) => ({
+        id: assignment.id,
+        title: assignment.title,
+        subjectId: assignment.subjectId,
+        date: assignment.deadline,
+        type: 'Assignment',
+      })),
+    ...upcomingExams.map((exam) => ({
+      id: exam.id,
+      title: exam.name,
+      subjectId: exam.subjectId,
+      date: exam.date,
+      type: 'Exam',
+    })),
+  ].sort((first, second) => first.date.localeCompare(second.date))
 
   function addSubject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -158,6 +188,39 @@ function App() {
   return (
     <main className="subjects">
       <h1>CampusMate</h1>
+      <section className="dashboard" aria-labelledby="dashboard-heading">
+        <h2 id="dashboard-heading">Dashboard</h2>
+        <dl className="dashboard-summary" aria-live="polite">
+          <div className="summary-card">
+            <dt>Active assignments</dt>
+            <dd>{activeAssignments.length}</dd>
+          </div>
+          <div className="summary-card">
+            <dt>Upcoming exams</dt>
+            <dd>{upcomingExams.length}</dd>
+          </div>
+        </dl>
+        <section aria-labelledby="upcoming-heading">
+          <h3 id="upcoming-heading">Upcoming deadlines</h3>
+          <div aria-live="polite">
+            {upcomingItems.length === 0 ? (
+              <p className="dashboard-empty">
+                No upcoming deadlines. Add an assignment with a deadline or an exam to see it here.
+              </p>
+            ) : (
+              <ol className="upcoming-list">
+                {upcomingItems.map((item) => (
+                  <li key={`${item.type}-${item.id}`}>
+                    <strong>{item.title}</strong>
+                    <p>{subjects.find((subject) => subject.id === item.subjectId)?.name}</p>
+                    <p>{item.type} · <time dateTime={item.date}>{item.date}</time></p>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        </section>
+      </section>
       <form className="subject-form" onSubmit={addSubject}>
         <label htmlFor="subject-name">Subject name</label>
         <input
