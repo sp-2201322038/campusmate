@@ -5,6 +5,58 @@
   text-align: left;
 }
 
+.dashboard {
+  margin-bottom: 32px;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 12px;
+  margin: 16px 0 24px;
+}
+
+.summary-card {
+  padding: 16px;
+  border: 1px solid var(--accent-border);
+  border-radius: 5px;
+  background: var(--accent-bg);
+}
+
+.summary-card dd {
+  margin: 8px 0 0;
+  font-size: 32px;
+  line-height: 1.2;
+  color: var(--text-h);
+}
+
+.dashboard h3 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.upcoming-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.upcoming-list li,
+.dashboard-empty {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+
+.upcoming-list strong {
+  color: var(--text-h);
+}
+
 .subject-form,
 .assignment-form,
 .exam-form {
