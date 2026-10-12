@@ -1,60 +1,281 @@
-.subjects {
-  width: calc(100% - 48px);
-  max-width: 640px;
-  margin: 32px auto;
-  text-align: left;
-}
-
-.dashboard {
-  margin-bottom: 32px;
+.app-shell {
+  width: calc(100% - 80px);
+  max-width: 1200px;
+  margin: var(--space-6) auto 48px;
   overflow-wrap: anywhere;
+  font-size: var(--text-body);
 }
 
-.dashboard-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
-  gap: 12px;
-  margin: 16px 0 24px;
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border);
 }
 
-.summary-card {
-  padding: 16px;
-  border: 1px solid var(--accent-border);
-  border-radius: 5px;
-  background: var(--accent-bg);
+.app-header h1 {
+  margin: 0;
+  font-size: 21px;
+  letter-spacing: -0.7px;
 }
 
-.summary-card dd {
-  margin: 8px 0 0;
-  font-size: 32px;
-  line-height: 1.2;
+.app-header nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface-muted);
+}
+
+.app-header nav button {
+  min-height: 44px;
+  padding: 10px var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-card);
+  font: inherit;
+  font-size: var(--text-label);
+  font-weight: 500;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.app-header nav button[aria-current='page'] {
+  border-color: var(--accent-border);
+  color: var(--accent);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.app-header nav button:hover {
+  color: var(--text-h);
+  background: var(--surface-hover);
+}
+
+.workspace {
+  margin-top: var(--space-8);
+  min-width: 0;
+}
+
+.workspace-view {
+  animation: view-enter var(--motion-fast) ease-out;
+}
+
+.workspace-view[hidden] {
+  display: none;
+}
+
+.view-heading {
+  margin-bottom: var(--space-6);
+}
+
+.view-heading p {
+  margin-top: var(--space-2);
+  font-size: var(--text-label);
+}
+
+.workspace-view h3 {
+  margin: 0 0 var(--space-5);
+  font-size: var(--text-body);
+  font-weight: 600;
+  letter-spacing: -0.15px;
   color: var(--text-h);
 }
 
-.dashboard h3 {
-  margin: 0 0 12px;
-  font-size: 20px;
+.view-grid {
+  display: grid;
+  grid-template-columns: 288px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-6);
+}
+
+.form-panel,
+.list-panel {
+  min-width: 0;
+  padding: var(--space-6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.form-panel {
+  position: sticky;
+  top: var(--space-6);
+}
+
+.form-panel > p,
+.list-panel > p {
+  margin: var(--space-3) 0;
+  font-size: var(--text-label);
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 256px;
+  align-items: start;
+  gap: var(--space-6);
+}
+
+.dashboard .view-heading {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+}
+
+.dashboard-summary {
+  grid-column: 2;
+  grid-row: 2;
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.summary-card {
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.summary-card dt {
+  font-size: var(--text-label);
   font-weight: 500;
   color: var(--text-h);
 }
 
-.upcoming-list {
+.summary-card dd {
+  margin: var(--space-3) 0 0;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-h);
+}
+
+.summary-note {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--text-small);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: normal;
+  color: var(--text);
+}
+
+.dashboard > .list-panel {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.upcoming-list,
+.assignment-list,
+.exam-list {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.upcoming-list li,
-.dashboard-empty {
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
+.assignment-list,
+.exam-list {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 256px), 1fr));
 }
 
-.upcoming-list strong {
+.upcoming-list li {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--border);
+}
+
+.upcoming-list li:last-child {
+  padding-bottom: 0;
+}
+
+.deadline-date {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  font-size: 11px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  background: var(--surface-muted);
+}
+
+.deadline-day {
+  font-size: 22px;
+  font-weight: 600;
   color: var(--text-h);
+}
+
+.deadline-type {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: var(--text-small);
+  font-weight: 500;
+  color: var(--text);
+  background: var(--surface-muted);
+}
+
+.deadline-type.exam {
+  border-color: var(--accent-border);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.assignment-list li,
+.exam-list li {
+  min-width: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-muted);
+}
+
+.upcoming-list p,
+.assignment-list p,
+.exam-list p {
+  margin-top: var(--space-1);
+  font-size: var(--text-small);
+}
+
+.upcoming-list strong,
+.assignment-list strong,
+.exam-list strong {
+  color: var(--text-h);
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.assignment-section .list-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 240px);
+  gap: var(--space-5);
+}
+
+.assignment-section .list-panel > h3 {
+  align-self: center;
+  margin: 0;
+}
+
+.assignment-section .list-panel > .assignment-list,
+.assignment-section .list-panel > p {
+  grid-column: 1 / -1;
 }
 
 .subject-form,
@@ -62,34 +283,44 @@
 .assignment-filter,
 .exam-form {
   display: grid;
-  gap: 12px;
+  gap: var(--space-2);
 }
 
-.assignment-form,
-.assignment-filter,
-.exam-form {
-  margin: 16px 0;
+.subject-form label,
+.assignment-form label,
+.assignment-filter label,
+.exam-form label {
+  color: var(--text-h);
+  font-size: var(--text-small);
+  font-weight: 500;
 }
 
-.subject-form input,
+.assignment-form label:not(:first-child),
+.exam-form label:not(:first-child) {
+  margin-top: var(--space-2);
+}
+
+.app-shell input,
+.app-shell select,
 .subject-form button,
-.assignment-form input,
-.assignment-form select,
 .assignment-form button,
-.assignment-filter select,
-.exam-form input,
-.exam-form select,
 .exam-form button,
 .assignment-list button {
   box-sizing: border-box;
   min-width: 0;
+  max-width: 100%;
   min-height: 44px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
+  padding: 10px var(--space-3);
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
   font: inherit;
   color: var(--text-h);
-  background: var(--bg);
+  background: var(--surface-muted);
+}
+
+.app-shell input:hover:not(:disabled),
+.app-shell select:hover:not(:disabled) {
+  border-color: var(--text);
 }
 
 .subject-form button,
@@ -97,23 +328,67 @@
 .exam-form button,
 .assignment-list button {
   justify-self: start;
-  border-color: var(--accent-border);
-  background: var(--accent-bg);
+  font-size: var(--text-small);
+  font-weight: 600;
+  background: var(--surface);
   cursor: pointer;
 }
 
-.subject-form input:focus-visible,
-.subject-form button:focus-visible,
-.assignment-form input:focus-visible,
-.assignment-form select:focus-visible,
-.assignment-form button:focus-visible,
-.assignment-filter select:focus-visible,
-.exam-form input:focus-visible,
-.exam-form select:focus-visible,
-.exam-form button:focus-visible,
-.assignment-list button:focus-visible {
+.subject-form button[type='submit'],
+.assignment-form button[type='submit'],
+.exam-form button[type='submit'] {
+  margin-top: var(--space-2);
+  border-color: var(--accent);
+  color: var(--button-text);
+  background: var(--accent);
+}
+
+.subject-form button:hover:not(:disabled),
+.assignment-form button:hover:not(:disabled),
+.exam-form button:hover:not(:disabled),
+.assignment-list button:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
+.subject-form button[type='submit']:hover:not(:disabled),
+.assignment-form button[type='submit']:hover:not(:disabled),
+.exam-form button[type='submit']:hover:not(:disabled) {
+  border-color: var(--accent-hover);
+  color: var(--button-text);
+  background: var(--accent-hover);
+}
+
+.app-shell button,
+.app-shell input,
+.app-shell select,
+.summary-card,
+.subject-list li,
+.assignment-list li,
+.exam-list li,
+.upcoming-list li {
+  transition: background-color var(--motion-fast) ease, border-color var(--motion-fast) ease,
+    color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+}
+
+.summary-card:hover,
+.subject-list li:hover,
+.assignment-list li:hover,
+.exam-list li:hover {
+  border-color: var(--control-border);
+  box-shadow: var(--shadow-hover);
+}
+
+.upcoming-list li:hover {
+  background: var(--surface-muted);
+}
+
+.app-shell button:focus-visible,
+.app-shell input:focus-visible,
+.app-shell select:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 
 .assignment-form :disabled,
@@ -125,36 +400,175 @@
 #subject-error,
 #assignment-error,
 #exam-error {
+  color: var(--error);
+  font-size: var(--text-label);
+}
+
+[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+.subject-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.subject-list li {
+  min-width: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  font-size: var(--text-label);
+  font-weight: 500;
   color: var(--text-h);
-}
-
-.subjects-list,
-.assignment-section,
-.exam-section {
-  margin-top: 32px;
-}
-
-.subject-list,
-.assignment-list,
-.exam-list {
-  padding-left: 24px;
-  overflow-wrap: anywhere;
-}
-
-.subject-list li,
-.assignment-list li,
-.exam-list li {
-  padding: 8px 0;
+  background: var(--surface-muted);
 }
 
 .assignment-list button {
-  margin-top: 8px;
+  margin: var(--space-4) var(--space-1) 0 0;
 }
 
-.assignment-list button + button {
-  margin-left: 8px;
+.assignment-list .assignment-status {
+  display: table;
+  margin: var(--space-3) 0 0;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-h);
+  background: var(--surface);
 }
 
 .assignment-list .completed strong {
   text-decoration: line-through;
+}
+
+@keyframes view-enter {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    width: calc(100% - 48px);
+  }
+
+  .dashboard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-summary {
+    grid-column: 1;
+    grid-row: 2;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard > .list-panel {
+    grid-row: 3;
+  }
+
+  .assignment-section .list-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    width: calc(100% - 32px);
+    margin-top: var(--space-4);
+  }
+
+  .view-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+
+  .form-panel {
+    position: static;
+  }
+
+  .app-header nav {
+    width: 100%;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .app-header nav button {
+    padding-inline: var(--space-2);
+  }
+}
+
+@media (max-width: 480px) {
+  .app-shell {
+    width: calc(100% - 24px);
+  }
+
+  .workspace {
+    margin-top: var(--space-6);
+  }
+
+  .app-header nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .form-panel,
+  .list-panel,
+  .summary-card {
+    padding: var(--space-4);
+  }
+
+  .dashboard {
+    gap: var(--space-4);
+  }
+
+  .dashboard-summary {
+    gap: var(--space-3);
+  }
+
+  .summary-card dd {
+    font-size: 30px;
+  }
+
+  .upcoming-list li {
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .deadline-date {
+    grid-row: span 2;
+  }
+
+  .deadline-type {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-view {
+    animation: none;
+  }
+
+  .app-shell button,
+  .app-shell input,
+  .app-shell select,
+  .summary-card,
+  .subject-list li,
+  .assignment-list li,
+  .exam-list li,
+  .upcoming-list li {
+    transition: none;
+  }
 }
