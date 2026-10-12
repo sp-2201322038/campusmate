@@ -59,12 +59,14 @@
 
 .subject-form,
 .assignment-form,
+.assignment-filter,
 .exam-form {
   display: grid;
   gap: 12px;
 }
 
 .assignment-form,
+.assignment-filter,
 .exam-form {
   margin: 16px 0;
 }
@@ -74,6 +76,7 @@
 .assignment-form input,
 .assignment-form select,
 .assignment-form button,
+.assignment-filter select,
 .exam-form input,
 .exam-form select,
 .exam-form button,
@@ -104,6 +107,7 @@
 .assignment-form input:focus-visible,
 .assignment-form select:focus-visible,
 .assignment-form button:focus-visible,
+.assignment-filter select:focus-visible,
 .exam-form input:focus-visible,
 .exam-form select:focus-visible,
 .exam-form button:focus-visible,
