@@ -399,9 +399,14 @@
 
 #subject-error,
 #assignment-error,
-#exam-error {
+#exam-error,
+#persistence-error {
   color: var(--error);
   font-size: var(--text-label);
+}
+
+#persistence-error {
+  margin-bottom: var(--space-6);
 }
 
 [aria-invalid='true'] {
