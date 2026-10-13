@@ -1,57 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import type { Assignment } from './models'
+import { isOverdue } from './assignmentUtils'
 import { useStoredList } from './useStoredList'
-import { isNonEmptyString, validateRequiredText } from './validation'
+import { isAssignment, isExam, isSubject, validateRequiredText } from './validation'
 import './App.css'
 
 const views = ['Dashboard', 'Subjects', 'Assignments', 'Exams'] as const
-
-type Subject = {
-  id: string
-  name: string
-}
-
-type Assignment = {
-  id: string
-  title: string
-  subjectId: string
-  deadline: string
-  priority: 'Low' | 'Medium' | 'High'
-  completed: boolean
-}
-
-type Exam = {
-  id: string
-  name: string
-  subjectId: string
-  date: string
-}
-
-function isSubject(value: unknown): value is Subject {
-  if (typeof value !== 'object' || value === null) return false
-  const subject = value as Record<string, unknown>
-  return isNonEmptyString(subject.id) && isNonEmptyString(subject.name)
-}
-
-function isAssignment(value: unknown): value is Assignment {
-  if (typeof value !== 'object' || value === null) return false
-  const assignment = value as Record<string, unknown>
-  return isNonEmptyString(assignment.id)
-    && isNonEmptyString(assignment.title)
-    && isNonEmptyString(assignment.subjectId)
-    && typeof assignment.deadline === 'string'
-    && typeof assignment.completed === 'boolean'
-    && (assignment.priority === 'Low' || assignment.priority === 'Medium' || assignment.priority === 'High')
-}
-
-function isExam(value: unknown): value is Exam {
-  if (typeof value !== 'object' || value === null) return false
-  const exam = value as Record<string, unknown>
-  return isNonEmptyString(exam.id)
-    && isNonEmptyString(exam.name)
-    && isNonEmptyString(exam.subjectId)
-    && isNonEmptyString(exam.date)
-}
 
 function App() {
   const [activeView, setActiveView] = useState<typeof views[number]>('Dashboard')
@@ -84,14 +39,12 @@ function App() {
   }, [now])
 
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const isOverdue = (assignment: Assignment) =>
-    !assignment.completed && Boolean(assignment.deadline) && assignment.deadline < today
   const activeAssignments = assignments.filter((assignment) => !assignment.completed)
   const normalizedSearch = assignmentSearch.trim().toLowerCase()
   const filteredAssignments = assignments.filter((assignment) =>
     (!subjectFilterId || assignment.subjectId === subjectFilterId)
     && assignment.title.toLowerCase().includes(normalizedSearch)
-    && (!overdueOnly || isOverdue(assignment)))
+    && (!overdueOnly || isOverdue(assignment, today)))
   const upcomingExams = exams.filter((exam) => exam.date >= today)
   const upcomingItems = [
     ...activeAssignments
@@ -418,14 +371,14 @@ function App() {
               ) : (
                 <ul className="assignment-list" aria-live="polite">
                   {filteredAssignments.map((assignment) => (
-                    <li key={assignment.id} className={assignment.completed ? 'completed' : isOverdue(assignment) ? 'overdue' : undefined}>
+                    <li key={assignment.id} className={assignment.completed ? 'completed' : isOverdue(assignment, today) ? 'overdue' : undefined}>
                       <strong>{assignment.title}</strong>
                       <p>{subjects.find((subject) => subject.id === assignment.subjectId)?.name}</p>
                       <p>Priority: {assignment.priority}</p>
                       {assignment.deadline && (
                         <p>Deadline: <time dateTime={assignment.deadline}>{assignment.deadline}</time></p>
                       )}
-                      <p className="assignment-status">{assignment.completed ? 'Completed' : isOverdue(assignment) ? 'Overdue' : 'Active'}</p>
+                      <p className="assignment-status">{assignment.completed ? 'Completed' : isOverdue(assignment, today) ? 'Overdue' : 'Active'}</p>
                       <button
                         type="button"
                         aria-label={`Edit ${assignment.title}`}
