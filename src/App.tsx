@@ -11,13 +11,13 @@ const views = ['Dashboard', 'Subjects', 'Assignments', 'Exams'] as const
 function App() {
   const [activeView, setActiveView] = useState<typeof views[number]>('Dashboard')
   const [subjectName, setSubjectName] = useState('')
-  const [subjects, setSubjects] = useStoredList('campusmate.subjects', isSubject)
+  const [subjects, setSubjects, subjectPersistenceError] = useStoredList('campusmate.subjects', isSubject)
   const [error, setError] = useState('')
   const [assignmentTitle, setAssignmentTitle] = useState('')
   const [assignmentSubjectId, setAssignmentSubjectId] = useState('')
   const [assignmentDeadline, setAssignmentDeadline] = useState('')
   const [assignmentPriority, setAssignmentPriority] = useState<Assignment['priority']>('Medium')
-  const [assignments, setAssignments] = useStoredList('campusmate.assignments', isAssignment)
+  const [assignments, setAssignments, assignmentPersistenceError] = useStoredList('campusmate.assignments', isAssignment)
   const [subjectFilterId, setSubjectFilterId] = useState('')
   const [assignmentSearch, setAssignmentSearch] = useState('')
   const [overdueOnly, setOverdueOnly] = useState(false)
@@ -27,8 +27,9 @@ function App() {
   const [examName, setExamName] = useState('')
   const [examSubjectId, setExamSubjectId] = useState('')
   const [examDate, setExamDate] = useState('')
-  const [exams, setExams] = useStoredList('campusmate.exams', isExam)
+  const [exams, setExams, examPersistenceError] = useStoredList('campusmate.exams', isExam)
   const [examError, setExamError] = useState('')
+  const persistenceError = subjectPersistenceError || assignmentPersistenceError || examPersistenceError
 
   const [now, setNow] = useState(() => new Date())
 
@@ -169,6 +170,7 @@ function App() {
         </nav>
       </header>
       <main className="workspace">
+        {persistenceError && <p id="persistence-error" className="list-panel" role="alert">{persistenceError}</p>}
         <section className="dashboard workspace-view" hidden={activeView !== 'Dashboard'} aria-labelledby="dashboard-heading">
           <header className="view-heading">
             <h2 id="dashboard-heading">Dashboard</h2>
