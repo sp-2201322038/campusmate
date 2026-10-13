@@ -64,6 +64,7 @@ function App() {
   const [assignmentPriority, setAssignmentPriority] = useState<Assignment['priority']>('Medium')
   const [assignments, setAssignments] = useStoredList('campusmate.assignments', isAssignment)
   const [subjectFilterId, setSubjectFilterId] = useState('')
+  const [assignmentSearch, setAssignmentSearch] = useState('')
   const [assignmentError, setAssignmentError] = useState('')
   const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null)
   const assignmentTitleRef = useRef<HTMLInputElement>(null)
@@ -83,9 +84,10 @@ function App() {
 
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   const activeAssignments = assignments.filter((assignment) => !assignment.completed)
-  const filteredAssignments = subjectFilterId
-    ? assignments.filter((assignment) => assignment.subjectId === subjectFilterId)
-    : assignments
+  const normalizedSearch = assignmentSearch.trim().toLowerCase()
+  const filteredAssignments = assignments.filter((assignment) =>
+    (!subjectFilterId || assignment.subjectId === subjectFilterId)
+    && assignment.title.toLowerCase().includes(normalizedSearch))
   const upcomingExams = exams.filter((exam) => exam.date >= today)
   const upcomingItems = [
     ...activeAssignments
@@ -372,6 +374,14 @@ function App() {
             <section className="list-panel" aria-labelledby="assignment-list-heading">
               <h3 id="assignment-list-heading">Your assignments</h3>
               <div className="assignment-filter">
+                <label htmlFor="assignment-search">Search assignments</label>
+                <input
+                  id="assignment-search"
+                  type="search"
+                  placeholder="Search by title"
+                  value={assignmentSearch}
+                  onChange={(event) => setAssignmentSearch(event.target.value)}
+                />
                 <label htmlFor="assignment-subject-filter">Filter by subject</label>
                 <select
                   id="assignment-subject-filter"
@@ -386,7 +396,9 @@ function App() {
               </div>
               {filteredAssignments.length === 0 ? (
                 <p role="status">
-                  {subjectFilterId ? 'No assignments for this subject.' : 'No assignments added yet.'}
+                  {normalizedSearch
+                    ? 'No assignments match your search.'
+                    : subjectFilterId ? 'No assignments for this subject.' : 'No assignments added yet.'}
                 </p>
               ) : (
                 <ul className="assignment-list" aria-live="polite">
