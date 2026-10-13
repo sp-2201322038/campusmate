@@ -65,6 +65,7 @@ function App() {
   const [assignments, setAssignments] = useStoredList('campusmate.assignments', isAssignment)
   const [subjectFilterId, setSubjectFilterId] = useState('')
   const [assignmentSearch, setAssignmentSearch] = useState('')
+  const [overdueOnly, setOverdueOnly] = useState(false)
   const [assignmentError, setAssignmentError] = useState('')
   const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null)
   const assignmentTitleRef = useRef<HTMLInputElement>(null)
@@ -83,11 +84,14 @@ function App() {
   }, [now])
 
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const isOverdue = (assignment: Assignment) =>
+    !assignment.completed && Boolean(assignment.deadline) && assignment.deadline < today
   const activeAssignments = assignments.filter((assignment) => !assignment.completed)
   const normalizedSearch = assignmentSearch.trim().toLowerCase()
   const filteredAssignments = assignments.filter((assignment) =>
     (!subjectFilterId || assignment.subjectId === subjectFilterId)
-    && assignment.title.toLowerCase().includes(normalizedSearch))
+    && assignment.title.toLowerCase().includes(normalizedSearch)
+    && (!overdueOnly || isOverdue(assignment)))
   const upcomingExams = exams.filter((exam) => exam.date >= today)
   const upcomingItems = [
     ...activeAssignments
@@ -393,24 +397,35 @@ function App() {
                     <option key={subject.id} value={subject.id}>{subject.name}</option>
                   ))}
                 </select>
+                <label htmlFor="assignment-status-filter">Filter by status</label>
+                <select
+                  id="assignment-status-filter"
+                  value={overdueOnly ? 'overdue' : 'all'}
+                  onChange={(event) => setOverdueOnly(event.target.value === 'overdue')}
+                >
+                  <option value="all">All assignments</option>
+                  <option value="overdue">Overdue</option>
+                </select>
               </div>
               {filteredAssignments.length === 0 ? (
                 <p role="status">
-                  {normalizedSearch
+                  {overdueOnly
+                    ? 'No overdue assignments found.'
+                    : normalizedSearch
                     ? 'No assignments match your search.'
                     : subjectFilterId ? 'No assignments for this subject.' : 'No assignments added yet.'}
                 </p>
               ) : (
                 <ul className="assignment-list" aria-live="polite">
                   {filteredAssignments.map((assignment) => (
-                    <li key={assignment.id} className={assignment.completed ? 'completed' : undefined}>
+                    <li key={assignment.id} className={assignment.completed ? 'completed' : isOverdue(assignment) ? 'overdue' : undefined}>
                       <strong>{assignment.title}</strong>
                       <p>{subjects.find((subject) => subject.id === assignment.subjectId)?.name}</p>
                       <p>Priority: {assignment.priority}</p>
                       {assignment.deadline && (
                         <p>Deadline: <time dateTime={assignment.deadline}>{assignment.deadline}</time></p>
                       )}
-                      <p className="assignment-status">{assignment.completed ? 'Completed' : 'Active'}</p>
+                      <p className="assignment-status">{assignment.completed ? 'Completed' : isOverdue(assignment) ? 'Overdue' : 'Active'}</p>
                       <button
                         type="button"
                         aria-label={`Edit ${assignment.title}`}

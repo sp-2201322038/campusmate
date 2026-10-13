@@ -448,6 +448,15 @@
   text-decoration: line-through;
 }
 
+.assignment-list .overdue .assignment-status,
+.assignment-list .overdue time {
+  color: var(--error);
+}
+
+.assignment-list .overdue .assignment-status {
+  border-color: var(--error);
+}
+
 @keyframes view-enter {
   from {
     opacity: 0;
