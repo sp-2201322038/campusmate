@@ -2,26 +2,28 @@
 
 CampusMate is a student organizer web application for managing subjects, assignments, exams, deadlines, priorities, and completed tasks in one place.
 
-## Target users
-
-School and university students who want a clear overview of their coursework and upcoming responsibilities.
-
-## Problem being solved
-
-Academic tasks and deadlines are often scattered across notes, calendars, and learning platforms. CampusMate aims to help students keep track of their workload, decide what to work on next, and avoid missing deadlines.
-
-## Planned main features
-
-- Organize subjects and their related coursework.
-- Track assignments and their due dates.
-- Keep track of upcoming exams.
-- View upcoming deadlines in one place.
-- Set task priorities to plan work.
-- Mark tasks as completed and review completed work.
-
 ## Current status
 
-The project is at the initial setup stage using the Vite starter app. The features above are planned; no CampusMate product functionality has been implemented yet.
+CampusMate is a working browser-based organizer for school and university students, with Subjects, Assignments, Exams, and Dashboard views.
+
+## Implemented features
+
+- **Subjects:** add and view subjects used to organize assignments and exams.
+- **Assignments:** create and edit assignments linked to subjects, with optional deadlines and Low, Medium, or High priorities. Mark assignments as completed or active.
+- **Search and filtering:** search assignment titles and filter by subject or overdue status; combine these controls to narrow results.
+- **Exams:** add and view exams with a subject and required date.
+- **Dashboard:** view active assignments, upcoming exams, subject counts, completion progress, overdue counts, and upcoming assignment and exam dates in chronological order.
+- **Overdue tracking:** incomplete assignments with deadlines before the current local date are overdue. Assignments due today, completed assignments, and assignments without deadlines are not overdue.
+
+## Data storage and limitations
+
+Subjects, assignments, and exams are saved as JSON arrays in browser `localStorage` under `campusmate.subjects`, `campusmate.assignments`, and `campusmate.exams`. Valid saved records are restored after reload, and changes synchronize between tabs on the same origin.
+
+Data stays in the current browser profile and origin (including the port). There is no backend, account system, cloud backup, or synchronization across devices. Clearing site data removes saved records; private browsing may discard them when the session ends.
+
+If a save fails, changes remain in memory and a warning appears. Keep that tab open: unsaved changes are lost on reload or close. Conflicting changes from another tab can prevent saving until the conflicting records are reconciled.
+
+Stored dates must be real calendar dates in `YYYY-MM-DD` format (years 0001–9999). Assignments may use an empty deadline. Records with malformed fields or invalid dates are excluded when loading; valid records remain unchanged. Loading does not rewrite storage, but the next successful save of that list omits excluded records.
 
 ## Tech stack
 
@@ -55,9 +57,20 @@ These commands use `npm.cmd` for Windows PowerShell. On macOS or Linux, use `npm
 # Run lint checks
 npm.cmd run lint
 
+# Check TypeScript without building the app
+npm.cmd exec tsc -- -b
+
 # Check TypeScript and create a production build in dist/
 npm.cmd run build
 
 # Preview the production build locally after building
 npm.cmd run preview
+```
+
+The preview command serves the existing build locally; open the URL it prints. It is not a production hosting service.
+
+Run the focused persistence and date-validation checks with:
+
+```powershell
+node --test tests/useStoredList.test.mjs
 ```

@@ -2,12 +2,15 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import vm from 'node:vm'
+import { createRequire } from 'node:module'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import ts from 'typescript'
 
 function loadModule(path, globals = {}) {
   const source = readFileSync(new URL(path, import.meta.url), 'utf8')
   const { outputText } = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS },
+    compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
   })
   const exports = {}
   vm.runInNewContext(outputText, { exports, ...globals })
@@ -15,6 +18,39 @@ function loadModule(path, globals = {}) {
 }
 
 const { isSubject, isAssignment, isExam } = loadModule('../src/validation.ts')
+const { isOverdue } = loadModule('../src/assignmentUtils.ts')
+const { DateBadge, ReadableDate } = loadModule('../src/ui.tsx', { require: createRequire(import.meta.url) })
+const assignment = { id: 'a', title: 'Homework', subjectId: 's', deadline: '', priority: 'Medium', completed: false }
+const exam = { id: 'e', name: 'Final', subjectId: 's', date: '2026-10-15' }
+
+test('stored dates require real calendar dates, including leap-year boundaries', () => {
+  for (const [date, valid] of [
+    ['2024-02-29', true], ['2000-02-29', true], ['2400-02-29', true],
+    ['2026-02-28', true], ['2026-04-30', true], ['2026-12-31', true],
+    ['0001-01-01', true], ['0099-12-31', true], ['9999-12-31', true],
+    ['2026-02-29', false], ['1900-02-29', false], ['2100-02-29', false],
+    ['2026-02-30', false], ['2026-04-31', false], ['2026-01-32', false],
+    ['2026-00-10', false], ['2026-13-01', false], ['2026-01-00', false],
+    ['0000-01-01', false], ['Invalid Date', false], ['not-a-date', false],
+    ['2026-2-01', false], ['2026-02-1', false], [' 2026-02-01', false],
+    ['2026-02-01 ', false], ['2026-02-01T00:00:00Z', false],
+    ['2026-02-01\n', false], ['2026-02-01\r', false], ['2026-02-01\r\n', false],
+    [null, false], [undefined, false], [20260201, false],
+  ]) {
+    assert.equal(isAssignment({ ...assignment, deadline: date }), valid, `assignment: ${date}`)
+    assert.equal(isExam({ ...exam, date }), valid, `exam: ${date}`)
+  }
+  assert.equal(isAssignment(assignment), true)
+  assert.equal(isExam({ ...exam, date: '' }), false)
+})
+
+test('valid deadlines retain overdue, completion and due-today behavior', () => {
+  assert.equal(isOverdue({ ...assignment, deadline: '2024-02-29' }, '2024-03-01'), true)
+  assert.equal(isOverdue({ ...assignment, deadline: '2024-03-01' }, '2024-03-01'), false)
+  assert.equal(isOverdue({ ...assignment, deadline: '2024-03-02' }, '2024-03-01'), false)
+  assert.equal(isOverdue({ ...assignment, deadline: '2024-02-29', completed: true }, '2024-03-01'), false)
+  assert.equal(isOverdue(assignment, '2024-03-01'), false)
+})
 
 function createTabs(initial = [], key = 'campusmate.subjects', isValid = isSubject) {
   let stored = JSON.stringify(initial)
@@ -227,5 +263,36 @@ for (const [key, isValid, record] of [
     assert.equal(storage.records().length, 3)
     storage.sync()
     assert.equal(a.render()[0].length, 3)
+  })
+}
+
+for (const [key, isValid, record, field, DateComponent] of [
+  ['campusmate.assignments', isAssignment, assignment, 'deadline', ReadableDate],
+  ['campusmate.exams', isExam, exam, 'date', DateBadge],
+]) {
+  test(`${key}: invalid dates are excluded on load, sync and reload without changing valid records`, () => {
+    const valid = { ...record, [field]: '2024-02-29' }
+    const expected = field === 'deadline' ? [valid, { ...assignment, id: 'undated' }] : [valid]
+    const initial = [
+      ...expected,
+      { ...record, id: 'impossible', [field]: '2026-02-30' },
+      { ...record, id: 'malformed', [field]: 'Invalid Date' },
+      { ...record, id: 'bad-month', [field]: '2026-13-01' },
+    ]
+    const storage = createTabs(initial, key, isValid)
+    const a = storage.tab()
+    const b = storage.tab()
+    assert.deepEqual(Array.from(a.render()[0], (item) => ({ ...item })), expected)
+    assert.deepEqual(storage.records(), initial)
+    storage.sync()
+    assert.deepEqual(Array.from(b.render()[0], (item) => ({ ...item })), expected)
+    const markup = renderToStaticMarkup(createElement('div', null,
+      ...a.render()[0].filter((item) => item[field]).map((item) =>
+        createElement(DateComponent, { key: item.id, date: item[field] }))))
+    assert.doesNotMatch(markup, /Invalid Date|2026-02-30|2026-13-01/)
+    assert.match(markup, /datetime="2024-02-29"/i)
+    a.update((items) => items)
+    assert.deepEqual(storage.records(), expected)
+    assert.deepEqual(Array.from(storage.tab().render()[0], (item) => ({ ...item })), expected)
   })
 }
