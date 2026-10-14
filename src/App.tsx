@@ -4,6 +4,7 @@ import type { Assignment } from './models'
 import { isOverdue } from './assignmentUtils'
 import { useStoredList } from './useStoredList'
 import { isAssignment, isExam, isSubject, validateRequiredText } from './validation'
+import { DateBadge, EmptyState, Icon, ReadableDate } from './ui'
 import './App.css'
 
 const views = ['Dashboard', 'Subjects', 'Assignments', 'Exams'] as const
@@ -30,6 +31,11 @@ function App() {
   const [exams, setExams, examPersistenceError] = useStoredList('campusmate.exams', isExam)
   const [examError, setExamError] = useState('')
   const persistenceError = subjectPersistenceError || assignmentPersistenceError || examPersistenceError
+  const [feedback, setFeedback] = useState({ message: '', revision: 0 })
+
+  function announce(message: string) {
+    setFeedback((current) => ({ message, revision: current.revision + 1 }))
+  }
 
   const [now, setNow] = useState(() => new Date())
 
@@ -47,6 +53,8 @@ function App() {
     && assignment.title.toLowerCase().includes(normalizedSearch)
     && (!overdueOnly || isOverdue(assignment, today)))
   const upcomingExams = exams.filter((exam) => exam.date >= today)
+  const completedCount = assignments.length - activeAssignments.length
+  const overdueCount = activeAssignments.filter((assignment) => isOverdue(assignment, today)).length
   const upcomingItems = [
     ...activeAssignments
       .filter((assignment) => assignment.deadline && assignment.deadline >= today)
@@ -79,6 +87,7 @@ function App() {
     setSubjects((current) => [...current, { id: crypto.randomUUID(), name }])
     setSubjectName('')
     setError('')
+    announce('Subject added.')
   }
 
   function saveAssignment(event: FormEvent<HTMLFormElement>) {
@@ -104,6 +113,7 @@ function App() {
       ? current.map((item) => item.id === editingAssignmentId ? { ...item, ...assignment } : item)
       : [...current, { ...assignment, completed: false }])
     resetAssignmentForm()
+    announce(editingAssignmentId ? 'Assignment updated.' : 'Assignment added.')
   }
 
   function editAssignment(assignment: Assignment) {
@@ -129,6 +139,7 @@ function App() {
     setAssignments((current) => current.map((assignment) => assignment.id === id
       ? { ...assignment, completed: !assignment.completed }
       : assignment))
+    announce('Assignment status updated.')
   }
 
   function addExam(event: FormEvent<HTMLFormElement>) {
@@ -150,30 +161,44 @@ function App() {
     setExamSubjectId('')
     setExamDate('')
     setExamError('')
+    announce('Exam added.')
   }
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">Skip to workspace</a>
       <header className="app-header">
-        <h1>CampusMate</h1>
         <nav aria-label="Main navigation">
           {views.map((view) => (
             <button
               key={view}
               type="button"
               aria-current={activeView === view ? 'page' : undefined}
-              onClick={() => setActiveView(view)}
+              onClick={() => {
+                setActiveView(view)
+                setFeedback((current) => ({ ...current, message: '' }))
+              }}
             >
-              {view}
+              <span>{view}</span>
             </button>
           ))}
         </nav>
+        <time dateTime={today}>
+          {now.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+        </time>
       </header>
-      <main className="workspace">
+      <main className="workspace" id="main-content" tabIndex={-1}>
+        <div role="status" aria-live="polite" aria-atomic="true">
+          {feedback.message && (
+            <p className="save-feedback" key={feedback.revision}>
+              <Icon name="check" />{feedback.message}
+            </p>
+          )}
+        </div>
         {persistenceError && <p id="persistence-error" className="list-panel" role="alert">{persistenceError}</p>}
         <section className="dashboard workspace-view" hidden={activeView !== 'Dashboard'} aria-labelledby="dashboard-heading">
           <header className="view-heading">
-            <h2 id="dashboard-heading">Dashboard</h2>
+            <h1 id="dashboard-heading">Dashboard</h1>
             <p>Your coursework at a glance.</p>
           </header>
           <dl className="dashboard-summary" aria-live="polite">
@@ -181,60 +206,83 @@ function App() {
               <dt>Active assignments</dt>
               <dd>
                 {activeAssignments.length}
-                <span className="summary-note">Not completed</span>
+                {overdueCount > 0 && <span className="summary-note attention">{overdueCount} overdue</span>}
               </dd>
             </div>
             <div className="summary-card">
               <dt>Upcoming exams</dt>
               <dd>
                 {upcomingExams.length}
-                <span className="summary-note">Today and later</span>
+                <span className="summary-note">From today onward</span>
+              </dd>
+            </div>
+            <div className="summary-card">
+              <dt>Your subjects</dt>
+              <dd>
+                {subjects.length}
               </dd>
             </div>
           </dl>
-          <section className="list-panel" aria-labelledby="upcoming-heading">
-            <h3 id="upcoming-heading">Upcoming deadlines</h3>
+          <section className="list-panel upcoming-panel" aria-labelledby="upcoming-heading">
+            <div className="panel-heading">
+              <div>
+                <h3 id="upcoming-heading">Upcoming deadlines</h3>
+              </div>
+              <span className="count-badge">{upcomingItems.length}</span>
+            </div>
             <div aria-live="polite">
               {upcomingItems.length === 0 ? (
-                <p className="dashboard-empty">
-                  No upcoming deadlines. Add an assignment with a deadline or an exam to see it here.
-                </p>
+                <EmptyState title="No upcoming deadlines">
+                  Assignments with a deadline and upcoming exams appear here.
+                </EmptyState>
               ) : (
                 <ol className="upcoming-list">
                   {upcomingItems.map((item) => (
                     <li key={`${item.type}-${item.id}`}>
-                      <time className="deadline-date" dateTime={item.date} aria-label={item.date}>
-                        <span className="deadline-day">{item.date.slice(8, 10)}</span>
-                        <span>
-                          {new Date(`${item.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}
-                          {' '}{item.date.slice(0, 4)}
-                        </span>
-                      </time>
+                      <DateBadge date={item.date} />
                       <div className="deadline-details">
                         <strong>{item.title}</strong>
                         <p>{subjects.find((subject) => subject.id === item.subjectId)?.name}</p>
+                        {item.date === today && <span className="due-today">Due today</span>}
                       </div>
-                      <span className={`deadline-type${item.type === 'Exam' ? ' exam' : ''}`}>{item.type}</span>
+                      <span className={`deadline-type${item.type === 'Exam' ? ' exam' : ''}`}>
+                        {item.type}
+                      </span>
                     </li>
                   ))}
                 </ol>
               )}
             </div>
           </section>
+          <section className="list-panel progress-panel" aria-labelledby="progress-heading">
+            <div className="panel-heading">
+              <h3 id="progress-heading">Coursework progress</h3>
+            </div>
+            <p className="progress-number">{completedCount}<span> / {assignments.length}</span></p>
+            <p className="progress-caption">Assignments completed</p>
+            <progress value={completedCount} max={assignments.length || 1} aria-label="Completed assignments" />
+            <dl className="progress-details">
+              <div><dt>In progress</dt><dd>{activeAssignments.length}</dd></div>
+              <div><dt>Overdue</dt><dd className={overdueCount ? 'attention' : undefined}>{overdueCount}</dd></div>
+            </dl>
+          </section>
         </section>
         <section className="subjects-view workspace-view" hidden={activeView !== 'Subjects'} aria-labelledby="subjects-heading">
           <header className="view-heading">
-            <h2 id="subjects-heading">Subjects</h2>
+            <h1 id="subjects-heading">Subjects</h1>
             <p>Keep your courses organized.</p>
           </header>
           <div className="view-grid">
             <div className="form-panel">
-              <h3>Add subject</h3>
+              <div className="panel-heading">
+                <h3>Add subject</h3>
+              </div>
               <form className="subject-form" onSubmit={addSubject}>
                 <label htmlFor="subject-name">Subject name</label>
                 <input
                   id="subject-name"
                   name="subjectName"
+                  placeholder="e.g. Linear algebra"
                   value={subjectName}
                   onChange={(event) => {
                     setSubjectName(event.target.value)
@@ -245,16 +293,26 @@ function App() {
                   aria-describedby={error ? 'subject-error' : undefined}
                 />
                 {error && <p id="subject-error" role="alert">{error}</p>}
-                <button type="submit">Add subject</button>
+                <button type="submit"><Icon name="plus" />Add subject</button>
               </form>
             </div>
             <section className="subjects-list list-panel" aria-labelledby="subject-list-heading">
-              <h3 id="subject-list-heading">Your subjects</h3>
+              <div className="panel-heading">
+                <h3 id="subject-list-heading">Your subjects</h3>
+                <span className="count-badge">{subjects.length}</span>
+              </div>
               {subjects.length === 0 ? (
-                <p>No subjects added yet.</p>
+                <EmptyState title="No subjects yet">
+                  Add a subject to organize your coursework.
+                </EmptyState>
               ) : (
                 <ul className="subject-list" aria-live="polite">
-                  {subjects.map((subject) => <li key={subject.id}>{subject.name}</li>)}
+                  {subjects.map((subject, index) => (
+                    <li key={subject.id}>
+                      <span className="subject-number">{String(index + 1).padStart(2, '0')}</span>
+                      <strong>{subject.name}</strong>
+                    </li>
+                  ))}
                 </ul>
               )}
             </section>
@@ -262,12 +320,14 @@ function App() {
         </section>
         <section className="assignment-section workspace-view" hidden={activeView !== 'Assignments'} aria-labelledby="assignments-heading">
           <header className="view-heading">
-            <h2 id="assignments-heading">Assignments</h2>
+            <h1 id="assignments-heading">Assignments</h1>
             <p>Track coursework, priorities, and progress.</p>
           </header>
           <div className="view-grid">
             <div className="form-panel">
-              <h3>{editingAssignmentId ? 'Edit assignment' : 'Add assignment'}</h3>
+              <div className="panel-heading">
+                <h3>{editingAssignmentId ? 'Edit assignment' : 'Add assignment'}</h3>
+              </div>
               {subjects.length === 0 && <p>Add a subject before adding an assignment.</p>}
               <form
                 className="assignment-form"
@@ -279,6 +339,7 @@ function App() {
                   id="assignment-title"
                   ref={assignmentTitleRef}
                   name="assignmentTitle"
+                  placeholder="e.g. Problem set 04"
                   value={assignmentTitle}
                   onChange={(event) => {
                     setAssignmentTitle(event.target.value)
@@ -303,26 +364,33 @@ function App() {
                     <option key={subject.id} value={subject.id}>{subject.name}</option>
                   ))}
                 </select>
-                <label htmlFor="assignment-priority">Priority</label>
-                <select
-                  id="assignment-priority"
-                  name="assignmentPriority"
-                  value={assignmentPriority}
-                  onChange={(event) => setAssignmentPriority(event.target.value as Assignment['priority'])}
-                >
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                </select>
-                <label htmlFor="assignment-deadline">Deadline (optional)</label>
-                <input
-                  id="assignment-deadline"
-                  name="assignmentDeadline"
-                  type="date"
-                  value={assignmentDeadline}
-                  onChange={(event) => setAssignmentDeadline(event.target.value)}
-                />
+                <div className="field-pair">
+                  <div className="form-field">
+                    <label htmlFor="assignment-priority">Priority</label>
+                    <select
+                      id="assignment-priority"
+                      name="assignmentPriority"
+                      value={assignmentPriority}
+                      onChange={(event) => setAssignmentPriority(event.target.value as Assignment['priority'])}
+                    >
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                    </select>
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="assignment-deadline">Deadline <span className="optional">(optional)</span></label>
+                    <input
+                      id="assignment-deadline"
+                      name="assignmentDeadline"
+                      type="date"
+                      value={assignmentDeadline}
+                      onChange={(event) => setAssignmentDeadline(event.target.value)}
+                    />
+                  </div>
+                </div>
                 <button type="submit" disabled={subjects.length === 0}>
+                  <Icon name={editingAssignmentId ? 'check' : 'plus'} />
                   {editingAssignmentId ? 'Save changes' : 'Add assignment'}
                 </button>
                 {editingAssignmentId && (
@@ -331,70 +399,90 @@ function App() {
               </form>
             </div>
             <section className="list-panel" aria-labelledby="assignment-list-heading">
-              <h3 id="assignment-list-heading">Your assignments</h3>
+              <div className="panel-heading">
+                <h3 id="assignment-list-heading">Your assignments</h3>
+                <span className="count-badge">{filteredAssignments.length}</span>
+              </div>
               <div className="assignment-filter">
-                <label htmlFor="assignment-search">Search assignments</label>
-                <input
-                  id="assignment-search"
-                  type="search"
-                  placeholder="Search by title"
-                  value={assignmentSearch}
-                  onChange={(event) => setAssignmentSearch(event.target.value)}
-                />
-                <label htmlFor="assignment-subject-filter">Filter by subject</label>
-                <select
-                  id="assignment-subject-filter"
-                  value={subjectFilterId}
-                  onChange={(event) => setSubjectFilterId(event.target.value)}
-                >
-                  <option value="">All subjects</option>
-                  {subjects.map((subject) => (
-                    <option key={subject.id} value={subject.id}>{subject.name}</option>
-                  ))}
-                </select>
-                <label htmlFor="assignment-status-filter">Filter by status</label>
-                <select
-                  id="assignment-status-filter"
-                  value={overdueOnly ? 'overdue' : 'all'}
-                  onChange={(event) => setOverdueOnly(event.target.value === 'overdue')}
-                >
-                  <option value="all">All assignments</option>
-                  <option value="overdue">Overdue</option>
-                </select>
+                <div className="form-field">
+                  <label htmlFor="assignment-search">Search assignments</label>
+                  <input
+                    id="assignment-search"
+                    type="search"
+                    placeholder="Search by title"
+                    value={assignmentSearch}
+                    onChange={(event) => setAssignmentSearch(event.target.value)}
+                  />
+                </div>
+                <div className="form-field">
+                  <label htmlFor="assignment-subject-filter">Filter by subject</label>
+                  <select
+                    id="assignment-subject-filter"
+                    value={subjectFilterId}
+                    onChange={(event) => setSubjectFilterId(event.target.value)}
+                  >
+                    <option value="">All subjects</option>
+                    {subjects.map((subject) => (
+                      <option key={subject.id} value={subject.id}>{subject.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-field">
+                  <label htmlFor="assignment-status-filter">Filter by status</label>
+                  <select
+                    id="assignment-status-filter"
+                    value={overdueOnly ? 'overdue' : 'all'}
+                    onChange={(event) => setOverdueOnly(event.target.value === 'overdue')}
+                  >
+                    <option value="all">All assignments</option>
+                    <option value="overdue">Overdue</option>
+                  </select>
+                </div>
               </div>
               {filteredAssignments.length === 0 ? (
-                <p role="status">
-                  {overdueOnly
-                    ? 'No overdue assignments found.'
-                    : normalizedSearch
-                    ? 'No assignments match your search.'
-                    : subjectFilterId ? 'No assignments for this subject.' : 'No assignments added yet.'}
-                </p>
+                <div role="status">
+                  <EmptyState title={assignments.length === 0 ? 'No assignments yet' : 'No matches'}>
+                    {overdueOnly
+                      ? 'No overdue assignments found.'
+                      : normalizedSearch
+                        ? 'No assignments match your search.'
+                        : subjectFilterId ? 'No assignments for this subject.' : 'No assignments added yet.'}
+                  </EmptyState>
+                </div>
               ) : (
                 <ul className="assignment-list" aria-live="polite">
                   {filteredAssignments.map((assignment) => (
                     <li key={assignment.id} className={assignment.completed ? 'completed' : isOverdue(assignment, today) ? 'overdue' : undefined}>
-                      <strong>{assignment.title}</strong>
-                      <p>{subjects.find((subject) => subject.id === assignment.subjectId)?.name}</p>
-                      <p>Priority: {assignment.priority}</p>
-                      {assignment.deadline && (
-                        <p>Deadline: <time dateTime={assignment.deadline}>{assignment.deadline}</time></p>
-                      )}
-                      <p className="assignment-status">{assignment.completed ? 'Completed' : isOverdue(assignment, today) ? 'Overdue' : 'Active'}</p>
-                      <button
-                        type="button"
-                        aria-label={`Edit ${assignment.title}`}
-                        onClick={() => editAssignment(assignment)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`${assignment.completed ? 'Mark as active' : 'Mark as completed'}: ${assignment.title}`}
-                        onClick={() => toggleAssignmentCompletion(assignment.id)}
-                      >
-                        {assignment.completed ? 'Mark as active' : 'Mark as completed'}
-                      </button>
+                      <div className="assignment-card-top">
+                        <span className={`priority-badge priority-${assignment.priority.toLowerCase()}`}>{assignment.priority} priority</span>
+                        <span className="assignment-status">{assignment.completed ? 'Completed' : isOverdue(assignment, today) ? 'Overdue' : 'Active'}</span>
+                      </div>
+                      <div className="assignment-details">
+                        <strong>{assignment.title}</strong>
+                        <p>{subjects.find((subject) => subject.id === assignment.subjectId)?.name}</p>
+                        {assignment.deadline && (
+                          <p className="card-date">
+                            <span>Due <ReadableDate date={assignment.deadline} /></span>
+                          </p>
+                        )}
+                      </div>
+                      <div className="card-actions">
+                        <button
+                          type="button"
+                          aria-label={`Edit ${assignment.title}`}
+                          onClick={() => editAssignment(assignment)}
+                        >
+                          <Icon name="edit" />Edit
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`${assignment.completed ? 'Mark as active' : 'Mark as completed'}: ${assignment.title}`}
+                          onClick={() => toggleAssignmentCompletion(assignment.id)}
+                        >
+                          <Icon name={assignment.completed ? 'arrow' : 'check'} />
+                          {assignment.completed ? 'Mark as active' : 'Mark as completed'}
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -404,12 +492,14 @@ function App() {
         </section>
         <section className="exam-section workspace-view" hidden={activeView !== 'Exams'} aria-labelledby="exams-heading">
           <header className="view-heading">
-            <h2 id="exams-heading">Exams</h2>
+            <h1 id="exams-heading">Exams</h1>
             <p>Plan for your next exams.</p>
           </header>
           <div className="view-grid">
             <div className="form-panel">
-              <h3>Add exam</h3>
+              <div className="panel-heading">
+                <h3>Add exam</h3>
+              </div>
               {subjects.length === 0 && <p>Add a subject before adding an exam.</p>}
               <form
                 className="exam-form"
@@ -421,6 +511,7 @@ function App() {
                 <input
                   id="exam-name"
                   name="examName"
+                  placeholder="e.g. Midterm exam"
                   value={examName}
                   onChange={(event) => {
                     setExamName(event.target.value)
@@ -458,20 +549,27 @@ function App() {
                   required
                 />
                 {examError && <p id="exam-error" role="alert">{examError}</p>}
-                <button type="submit" disabled={subjects.length === 0}>Add exam</button>
+                <button type="submit" disabled={subjects.length === 0}><Icon name="plus" />Add exam</button>
               </form>
             </div>
             <section className="list-panel" aria-labelledby="exam-list-heading">
-              <h3 id="exam-list-heading">Your exams</h3>
+              <div className="panel-heading">
+                <h3 id="exam-list-heading">Your exams</h3>
+                <span className="count-badge">{exams.length}</span>
+              </div>
               {exams.length === 0 ? (
-                <p>No exams added yet.</p>
+                <EmptyState title="No exams yet">
+                  Add an exam with its subject and date.
+                </EmptyState>
               ) : (
                 <ul className="exam-list" aria-live="polite">
                   {exams.map((exam) => (
                     <li key={exam.id}>
-                      <strong>{exam.name}</strong>
-                      <p>{subjects.find((subject) => subject.id === exam.subjectId)?.name}</p>
-                      <p>Date: <time dateTime={exam.date}>{exam.date}</time></p>
+                      <DateBadge date={exam.date} />
+                      <div className="exam-details">
+                        <strong>{exam.name}</strong>
+                        <p>{subjects.find((subject) => subject.id === exam.subjectId)?.name}</p>
+                      </div>
                     </li>
                   ))}
                 </ul>
